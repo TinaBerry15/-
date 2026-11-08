@@ -4,7 +4,7 @@
 // 再生/一時停止/シークのたびに作り直し、位置は AudioContext の時計から計算する。
 
 import { Source } from './base.js';
-import { computePeaks, detectBpm } from '../analysis.js';
+import { computePeaks, detectBeatGrid, detectBeatOffset } from '../analysis.js';
 
 export class LocalSource extends Source {
   /**
@@ -23,6 +23,7 @@ export class LocalSource extends Source {
       pitch: true,
       waveform: true,
       cue: true,
+      grid: true,
       meter: true,
     };
 
@@ -34,7 +35,20 @@ export class LocalSource extends Source {
     this.rate = 1; // ピッチ (再生速度)
     this.loop = null; // {start, end} 秒
     this.cuePoint = 0;
-    this.baseBpm = 0; // 解析された元の BPM
+    this.baseBpm = 0; // 解析された元の BPM (ピッチ 0% 相当)
+
+    /**
+     * ビートグリッド。offset は 1 拍目 (= 1 小節目の頭) の時刻 (秒)。
+     * 拍は offset + k * (60 / bpm)、小節線は k が 4 の倍数のところ。
+     * @type {{bpm: number, offset: number, confidence: number}|null}
+     */
+    this.grid = null;
+
+    /** ホットキュー 4 点。秒、未設定は null。 @type {(number|null)[]} */
+    this.hotCues = [null, null, null, null];
+
+    /** ホットキューとグリッドを曲ごとに保存するためのキー。 */
+    this.fileKey = '';
 
     this._offset = 0; // バッファ内の再生開始位置 (秒)
     this._startedAt = 0; // 再生開始時の ctx.currentTime
@@ -53,17 +67,80 @@ export class LocalSource extends Source {
     this.title = (file.name || 'Untitled').replace(/\.[^.]+$/, '');
     this.artist = 'ローカルファイル';
     this.peaks = computePeaks(this.buffer, 2400);
+    this.fileKey = `${file.name}:${file.size}`;
 
-    const { bpm } = detectBpm(this.buffer);
-    this.baseBpm = bpm;
-    this.bpm = bpm;
+    const grid = detectBeatGrid(this.buffer);
+    this.baseBpm = grid.bpm;
+    this.bpm = grid.bpm;
+    this.grid = grid.bpm ? { bpm: grid.bpm, offset: grid.offset, confidence: grid.confidence } : null;
 
+    this.hotCues = [null, null, null, null];
     this._offset = 0;
     this._startedAt = 0;
     this.cuePoint = 0;
     this.playing = false;
     this.emit('change');
     return this;
+  }
+
+  /** 1 拍の長さ (秒、ピッチ適用前のバッファ時間)。 */
+  get beatSeconds() {
+    return this.grid?.bpm ? 60 / this.grid.bpm : 0;
+  }
+
+  /**
+   * 拍の中のどこにいるか (0 = 拍の頭, 0.5 = 裏)。グリッドが無ければ null。
+   * @param {number} [at] 位置 (秒)。省略時は現在位置
+   */
+  beatPhase(at = this.position) {
+    if (!this.grid?.bpm) return null;
+    const beat = this.beatSeconds;
+    const phase = ((at - this.grid.offset) / beat) % 1;
+    return phase < 0 ? phase + 1 : phase;
+  }
+
+  /**
+   * BPM を手で入れ直す。グリッドの位相も、その BPM で取り直す。
+   * @param {number} bpm
+   */
+  setBaseBpm(bpm) {
+    if (!this.buffer || !bpm) return;
+    const { offset, confidence } = detectBeatOffset(this.buffer, bpm);
+    this.baseBpm = bpm;
+    this.grid = { bpm, offset, confidence };
+    this.bpm = Math.round(bpm * this.rate * 10) / 10;
+    this.emit('change');
+  }
+
+  /** グリッドを前後にずらす (秒)。1 小節で巡回させる。 */
+  nudgeGrid(deltaSeconds) {
+    if (!this.grid) return;
+    const bar = this.beatSeconds * 4;
+    let offset = (this.grid.offset + deltaSeconds) % bar;
+    if (offset < 0) offset += bar;
+    this.grid = { ...this.grid, offset };
+    this.emit('change');
+  }
+
+  /** 今の位置を小節の頭にする。 */
+  setDownbeatHere() {
+    if (!this.grid) return;
+    const bar = this.beatSeconds * 4;
+    let offset = this.position % bar;
+    if (offset < 0) offset += bar;
+    this.grid = { ...this.grid, offset };
+    this.emit('change');
+  }
+
+  /**
+   * ホットキューを設定・解除する。
+   * @param {number} index 0..3
+   * @param {number|null} seconds null で解除
+   */
+  setHotCue(index, seconds) {
+    if (index < 0 || index > 3) return;
+    this.hotCues[index] = seconds === null ? null : Math.min(this.duration, Math.max(0, seconds));
+    this.emit('change');
   }
 
   get position() {
@@ -180,5 +257,6 @@ export class LocalSource extends Source {
     await this.stopNode();
     this.buffer = null;
     this.peaks = null;
+    this.grid = null;
   }
 }

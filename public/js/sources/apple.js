@@ -94,6 +94,7 @@ export class AppleSource extends Source {
       pitch: false,
       waveform: false,
       cue: false,
+      grid: false,
       meter: false,
     };
     /** @type {any} MusicKit インスタンス */

@@ -42,6 +42,26 @@ refreshUnlock();
 for (const [id, deck] of Object.entries(decks)) {
   const root = deck.root;
 
+  // ホットキューのパッド。空なら今の位置を記録、入っていればそこへ飛ぶ。
+  root.addEventListener('click', async (event) => {
+    const pad = event.target.closest('button[data-hotcue]');
+    if (!pad || pad.disabled) return;
+    const index = Number(pad.dataset.hotcue);
+    const result = await deck.hotCue(index);
+    if (result?.set) status(`デッキ ${id.toUpperCase()}: ホットキュー ${index + 1} を設定`, 'ok');
+    saveTrackState(deck);
+  });
+
+  // 右クリックでホットキューを消す。
+  root.addEventListener('contextmenu', (event) => {
+    const pad = event.target.closest('button[data-hotcue]');
+    if (!pad || pad.disabled) return;
+    event.preventDefault();
+    deck.clearHotCue(Number(pad.dataset.hotcue));
+    saveTrackState(deck);
+    status(`デッキ ${id.toUpperCase()}: ホットキュー ${Number(pad.dataset.hotcue) + 1} を解除`);
+  });
+
   root.addEventListener('click', async (event) => {
     const btn = event.target.closest('button[data-action]');
     if (!btn || btn.disabled) return;
@@ -70,11 +90,21 @@ for (const [id, deck] of Object.entries(decks)) {
         case 'eject':
           await deck.eject();
           break;
+        case 'grid-nudge':
+          deck.nudgeGrid(Number(btn.dataset.delta));
+          saveTrackState(deck);
+          break;
+        case 'grid-downbeat':
+          deck.setDownbeatHere();
+          saveTrackState(deck);
+          status(`デッキ ${id.toUpperCase()}: ここを小節頭にしました`, 'ok');
+          break;
         case 'sync': {
           const result = deck.syncTo(other(id));
           if (result.ok) {
             status(
-              `デッキ ${id.toUpperCase()} を ${other(id).bpm.toFixed(1)} BPM に同期 (${result.percent.toFixed(2)}%)`,
+              `デッキ ${id.toUpperCase()} を ${other(id).bpm.toFixed(1)} BPM に同期 (${result.percent.toFixed(2)}%)` +
+                (result.aligned ? ' / 拍も合わせました' : ' / 拍合わせはグリッドが要ります'),
               'ok',
             );
             const slider = root.querySelector('[data-action="pitch"]');
@@ -118,8 +148,8 @@ for (const [id, deck] of Object.entries(decks)) {
         deck.setPitch(value / 10);
         break;
       case 'bpm-manual':
-        deck.bpmOverride = value > 0 ? value : 0;
-        deck.render();
+        deck.setManualBpm(value);
+        saveTrackState(deck);
         break;
     }
   });
@@ -238,12 +268,67 @@ async function loadScInto(deck, url) {
   await deck.loadSoundCloudUrl(url);
 }
 
+// --- 曲ごとの状態 (ホットキュー / ビートグリッド) ---------------------
+// ローカルファイルは File ハンドル自体を保存できないので、
+// 「ファイル名:サイズ」をキーにして localStorage に覚えておく。
+const TRACKS_KEY = 'solo-dj.tracks.v1';
+
+function readTracks() {
+  try {
+    return JSON.parse(localStorage.getItem(TRACKS_KEY) || '{}');
+  } catch {
+    return {};
+  }
+}
+
+function saveTrackState(deck) {
+  const s = deck.source;
+  if (!s?.fileKey || !s.caps.grid) return;
+  const tracks = readTracks();
+  tracks[s.fileKey] = {
+    cues: s.hotCues,
+    bpm: s.grid?.bpm ?? 0,
+    offset: s.grid?.offset ?? 0,
+    cuePoint: s.cuePoint,
+  };
+  try {
+    localStorage.setItem(TRACKS_KEY, JSON.stringify(tracks));
+  } catch (err) {
+    status(`保存できませんでした: ${err.message}`, 'error');
+  }
+}
+
+function restoreTrackState(deck) {
+  const s = deck.source;
+  if (!s?.fileKey) return false;
+  const saved = readTracks()[s.fileKey];
+  if (!saved) return false;
+
+  if (Array.isArray(saved.cues)) {
+    saved.cues.forEach((at, i) => s.setHotCue(i, typeof at === 'number' ? at : null));
+  }
+  if (saved.bpm && s.grid) {
+    s.baseBpm = saved.bpm;
+    s.bpm = Math.round(saved.bpm * s.rate * 10) / 10;
+    s.grid = { ...s.grid, bpm: saved.bpm, offset: saved.offset ?? s.grid.offset };
+  }
+  if (typeof saved.cuePoint === 'number') s.setCuePoint(saved.cuePoint);
+  deck.render();
+  return true;
+}
+
 async function loadLocalInto(deck, file) {
   await mixer.resume();
   status(`${file.name} を解析中…`);
   await deck.loadLocalFile(file);
+  const restored = restoreTrackState(deck);
   const bpm = deck.source?.bpm;
-  status(`デッキ ${deck.id.toUpperCase()}: ${deck.source.title}${bpm ? ` / 推定 ${bpm} BPM` : ''}`, 'ok');
+  status(
+    `デッキ ${deck.id.toUpperCase()}: ${deck.source.title}` +
+      (bpm ? ` / ${restored ? '保存済み' : '推定'} ${bpm} BPM` : '') +
+      (restored ? ' (ホットキュー復元)' : ''),
+    'ok',
+  );
 }
 
 /** 結果リストの 1 行を作る。 */
@@ -581,6 +666,26 @@ window.addEventListener('keydown', async (event) => {
       case 'i':
         decks.b.setCueHere();
         break;
+      case '1':
+      case '2':
+      case '3':
+      case '4': {
+        const index = Number(event.key) - 1;
+        const r = await decks.a.hotCue(index);
+        if (r?.set) status(`デッキ A: ホットキュー ${index + 1} を設定`, 'ok');
+        saveTrackState(decks.a);
+        break;
+      }
+      case '6':
+      case '7':
+      case '8':
+      case '9': {
+        const index = Number(event.key) - 6;
+        const r = await decks.b.hotCue(index);
+        if (r?.set) status(`デッキ B: ホットキュー ${index + 1} を設定`, 'ok');
+        saveTrackState(decks.b);
+        break;
+      }
       case 's': {
         const r = decks.a.syncTo(decks.b);
         status(r.ok ? `A を同期 (${r.percent.toFixed(2)}%)` : `同期できません: ${r.reason}`, r.ok ? 'ok' : 'error');

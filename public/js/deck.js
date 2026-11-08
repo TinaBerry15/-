@@ -5,6 +5,9 @@ import { LocalSource } from './sources/local.js';
 import { AppleSource } from './sources/apple.js';
 import { SoundCloudSource } from './sources/soundcloud.js';
 
+/** ホットキュー 1〜4 の色。デッキ色と混同しないよう固定。 */
+const HOTCUE_COLORS = ['#ffd166', '#06d6a0', '#8d99ff', '#ff8fab'];
+
 const fmtTime = (seconds) => {
   if (!Number.isFinite(seconds) || seconds < 0) seconds = 0;
   const m = Math.floor(seconds / 60);
@@ -41,6 +44,8 @@ export class Deck {
       meter: root.querySelector('[data-deck-meter]'),
       pitchValue: root.querySelector('[data-pitch-value]'),
       notice: root.querySelector('[data-deck-notice]'),
+      pads: [...root.querySelectorAll('[data-hotcue]')],
+      gridInfo: root.querySelector('[data-grid-info]'),
     };
 
     this.ctx2d = this.el.canvas.getContext('2d');
@@ -132,6 +137,61 @@ export class Deck {
     }
   }
 
+  // --- ホットキュー --------------------------------------------------
+
+  /**
+   * パッドを押したときの動作。
+   * 空なら今の位置を記録し、入っていればそこへ飛んで再生する。
+   * @param {number} index 0..3
+   */
+  async hotCue(index) {
+    const s = this.source;
+    if (!s?.caps.cue) return;
+    const at = s.hotCues?.[index];
+    if (at === null || at === undefined) {
+      s.setHotCue(index, s.position);
+      this.render();
+      return { set: true, at: s.position };
+    }
+    await s.seek(at);
+    if (!s.playing) await this.togglePlay();
+    return { set: false, at };
+  }
+
+  /** @param {number} index 0..3 */
+  clearHotCue(index) {
+    this.source?.setHotCue?.(index, null);
+    this.render();
+  }
+
+  // --- ビートグリッド --------------------------------------------------
+
+  /** @param {number} deltaSeconds 正で後ろへ */
+  nudgeGrid(deltaSeconds) {
+    this.source?.nudgeGrid?.(deltaSeconds);
+    this.render();
+  }
+
+  setDownbeatHere() {
+    this.source?.setDownbeatHere?.();
+    this.render();
+  }
+
+  /**
+   * BPM を手で入れ直す。ローカル音源ならグリッドごと取り直し、
+   * DRM 音源は表示と SYNC の参照値としてだけ覚える。
+   * @param {number} bpm 0 で解除
+   */
+  setManualBpm(bpm) {
+    if (this.source?.caps.grid && bpm) {
+      this.bpmOverride = 0;
+      this.source.setBaseBpm(bpm);
+    } else {
+      this.bpmOverride = bpm > 0 ? bpm : 0;
+    }
+    this.render();
+  }
+
   /** 今の位置を CUE として覚える (ローカル音源のみ)。 */
   setCueHere() {
     if (this.source?.caps.cue) this.source.setCuePoint(this.source.position);
@@ -153,8 +213,9 @@ export class Deck {
     this.render();
   }
 
-  /** 表示中の BPM (手動上書き優先)。 */
+  /** 表示中の BPM。ローカル音源はグリッドの値、DRM 音源は手入力値。 */
   get bpm() {
+    if (this.source?.caps.grid) return this.source.bpm ?? 0;
     if (this.bpmOverride) {
       const rate = this.source?.rate ?? 1;
       return Math.round(this.bpmOverride * rate * 10) / 10;
@@ -191,7 +252,34 @@ export class Deck {
       return { ok: false, reason: `差が大きすぎます (${percent.toFixed(1)}%)` };
     }
     this.setPitch(percent);
-    return { ok: true, percent };
+
+    // テンポを合わせただけでは拍の頭は揃わないので、位相も合わせる。
+    const aligned = this.alignBeatTo(other);
+    return { ok: true, percent, aligned };
+  }
+
+  /**
+   * 相手デッキと拍の頭を揃える。テンポが合っている前提で、
+   * 半拍を超えない範囲でこのデッキの再生位置をずらす。
+   * @param {Deck} other
+   * @returns {boolean} 揃えられたか
+   */
+  alignBeatTo(other) {
+    const mine = this.source;
+    const theirs = other.source;
+    if (!mine?.grid || !theirs?.grid) return false;
+
+    const myPhase = mine.beatPhase();
+    const theirPhase = theirs.beatPhase();
+    if (myPhase === null || theirPhase === null) return false;
+
+    // 位相差を -0.5..0.5 に畳む (遠回りしない)。
+    let delta = theirPhase - myPhase;
+    if (delta > 0.5) delta -= 1;
+    if (delta < -0.5) delta += 1;
+
+    mine.seek(mine.position + delta * mine.beatSeconds);
+    return true;
   }
 
   // --- 描画 -----------------------------------------------------------
@@ -218,8 +306,30 @@ export class Deck {
       el.closest('.control')?.classList.toggle('control--disabled', !ok);
     }
 
+    this.renderPads();
+    this.renderGridInfo();
     this.drawWaveform();
     this.renderProgress();
+  }
+
+  renderPads() {
+    const s = this.source;
+    this.el.pads.forEach((pad, i) => {
+      const at = s?.hotCues?.[i];
+      const isSet = at !== null && at !== undefined;
+      pad.classList.toggle('is-set', isSet);
+      pad.style.setProperty('--pad-color', HOTCUE_COLORS[i]);
+      const time = pad.querySelector('[data-pad-time]');
+      if (time) time.textContent = isSet ? fmtTime(at) : '空';
+    });
+  }
+
+  renderGridInfo() {
+    if (!this.el.gridInfo) return;
+    const g = this.source?.grid;
+    this.el.gridInfo.textContent = g
+      ? `1拍目 ${(g.offset * 1000).toFixed(0)}ms / 信頼度 ${g.confidence.toFixed(2)}`
+      : 'グリッドなし';
   }
 
   renderProgress() {
@@ -270,6 +380,27 @@ export class Deck {
         ctx.fillRect(x, top, 1, Math.max(1, bottom - top));
       }
 
+      // ビートグリッド。拍が詰まりすぎたら小節線だけ、それも詰まるなら 4 小節ごと。
+      if (s.grid?.bpm) {
+        const beat = 60 / s.grid.bpm;
+        const beatPx = (beat / s.duration) * width;
+        let every = 0;
+        if (beatPx >= 5) every = 1;
+        else if (beatPx * 4 >= 5) every = 4;
+        else if (beatPx * 16 >= 5) every = 16;
+
+        if (every) {
+          for (let k = 0; ; k += every) {
+            const t = s.grid.offset + k * beat;
+            if (t > s.duration) break;
+            const gx = (t / s.duration) * width;
+            const isBar = k % 4 === 0;
+            ctx.fillStyle = isBar ? 'rgba(255,255,255,0.38)' : 'rgba(255,255,255,0.17)';
+            ctx.fillRect(gx, isBar ? 0 : height * 0.2, 1, isBar ? height : height * 0.6);
+          }
+        }
+      }
+
       // ループ範囲
       if (s.loop) {
         const x1 = (s.loop.start / s.duration) * width;
@@ -281,9 +412,21 @@ export class Deck {
       // キュー位置
       if (s.cuePoint) {
         const cx = (s.cuePoint / s.duration) * width;
-        ctx.fillStyle = '#ffd166';
+        ctx.fillStyle = '#ffffff88';
         ctx.fillRect(cx - 1, 0, 2, height);
       }
+
+      // ホットキュー
+      s.hotCues?.forEach((at, i) => {
+        if (at === null || at === undefined) return;
+        const hx = (at / s.duration) * width;
+        ctx.fillStyle = HOTCUE_COLORS[i];
+        ctx.fillRect(hx - 1, 0, 2, height);
+        ctx.fillRect(hx - 1, 0, 13, 13);
+        ctx.fillStyle = '#0b0d12';
+        ctx.font = 'bold 10px ui-monospace, monospace';
+        ctx.fillText(String(i + 1), hx + 2, 10);
+      });
     } else if (s) {
       // 波形が取れない音源は、進捗バーだけ描く (偽の波形は描かない)。
       ctx.fillStyle = 'rgba(255,255,255,0.07)';

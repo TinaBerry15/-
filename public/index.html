@@ -79,6 +79,38 @@
           </button>
         </div>
 
+        <div class="pads">
+          <div class="pads__row">
+            <button class="pad" data-hotcue="0" data-requires="cue">
+              <b>1</b><span data-pad-time>空</span>
+            </button>
+            <button class="pad" data-hotcue="1" data-requires="cue">
+              <b>2</b><span data-pad-time>空</span>
+            </button>
+            <button class="pad" data-hotcue="2" data-requires="cue">
+              <b>3</b><span data-pad-time>空</span>
+            </button>
+            <button class="pad" data-hotcue="3" data-requires="cue">
+              <b>4</b><span data-pad-time>空</span>
+            </button>
+          </div>
+          <div class="grid-tools">
+            <div class="grid-tools__row">
+              <span class="control__label">BEAT GRID</span>
+              <button class="btn btn--tiny" data-action="grid-nudge" data-delta="-0.01" data-requires="grid" title="グリッドを 10ms 前へ">
+                ◀
+              </button>
+              <button class="btn btn--tiny" data-action="grid-nudge" data-delta="0.01" data-requires="grid" title="グリッドを 10ms 後ろへ">
+                ▶
+              </button>
+              <button class="btn btn--tiny" data-action="grid-downbeat" data-requires="grid" title="今の位置を小節の頭にする">
+                ここを小節頭に
+              </button>
+            </div>
+            <small class="hint" data-grid-info>グリッドなし</small>
+          </div>
+        </div>
+
         <div class="deck__knobs">
           <label class="control">
             <span class="control__label">TRIM</span>
@@ -180,6 +212,38 @@
           <button class="btn" data-action="loop-out" data-requires="cue">OUT</button>
           <button class="btn" data-action="loop-clear" data-requires="cue">×</button>
           <button class="btn btn--sync" data-action="sync" data-requires="pitch">SYNC</button>
+        </div>
+
+        <div class="pads">
+          <div class="pads__row">
+            <button class="pad" data-hotcue="0" data-requires="cue">
+              <b>1</b><span data-pad-time>空</span>
+            </button>
+            <button class="pad" data-hotcue="1" data-requires="cue">
+              <b>2</b><span data-pad-time>空</span>
+            </button>
+            <button class="pad" data-hotcue="2" data-requires="cue">
+              <b>3</b><span data-pad-time>空</span>
+            </button>
+            <button class="pad" data-hotcue="3" data-requires="cue">
+              <b>4</b><span data-pad-time>空</span>
+            </button>
+          </div>
+          <div class="grid-tools">
+            <div class="grid-tools__row">
+              <span class="control__label">BEAT GRID</span>
+              <button class="btn btn--tiny" data-action="grid-nudge" data-delta="-0.01" data-requires="grid" title="グリッドを 10ms 前へ">
+                ◀
+              </button>
+              <button class="btn btn--tiny" data-action="grid-nudge" data-delta="0.01" data-requires="grid" title="グリッドを 10ms 後ろへ">
+                ▶
+              </button>
+              <button class="btn btn--tiny" data-action="grid-downbeat" data-requires="grid" title="今の位置を小節の頭にする">
+                ここを小節頭に
+              </button>
+            </div>
+            <small class="hint" data-grid-info>グリッドなし</small>
+          </div>
         </div>
 
         <div class="deck__knobs">
@@ -289,17 +353,24 @@
         <tr><td><kbd>Q</kbd> / <kbd>P</kbd></td><td>デッキ A / B 再生・一時停止</td></tr>
         <tr><td><kbd>W</kbd> / <kbd>O</kbd></td><td>デッキ A / B CUE</td></tr>
         <tr><td><kbd>E</kbd> / <kbd>I</kbd></td><td>今の位置を CUE に設定</td></tr>
+        <tr><td><kbd>1</kbd>〜<kbd>4</kbd></td><td>デッキ A のホットキュー (空なら設定、入っていれば頭出し)</td></tr>
+        <tr><td><kbd>6</kbd>〜<kbd>9</kbd></td><td>デッキ B のホットキュー</td></tr>
         <tr><td><kbd>←</kbd> / <kbd>→</kbd></td><td>クロスフェーダー</td></tr>
         <tr><td><kbd>↑</kbd> / <kbd>↓</kbd></td><td>マスター音量</td></tr>
-        <tr><td><kbd>S</kbd> / <kbd>L</kbd></td><td>A を B に / B を A に BPM シンク</td></tr>
+        <tr><td><kbd>S</kbd> / <kbd>L</kbd></td><td>A を B に / B を A に シンク (テンポ + 拍合わせ)</td></tr>
         <tr><td><kbd>F</kbd></td><td>反対側へオートフェード</td></tr>
         <tr><td><kbd>Space</kbd></td><td>両デッキ停止 (非常停止)</td></tr>
       </table>
+      <p class="hint">
+        パッドを右クリックするとホットキューを解除します。ホットキューとビートグリッドは
+        ファイル名とサイズをキーに保存され、同じ曲を読み直すと復元されます。
+      </p>
       <h3>できないこと (DRM の制約)</h3>
       <ul class="caveats">
         <li>Apple Music / SoundCloud の音には EQ・フィルター・ピッチ・波形・レベルメーターが使えません。</li>
         <li>Apple Music はプレイヤーが 1 つしか作れないため、A/B 両方に同時にロードできません。</li>
         <li>これらの音源の「ミックス」はクロスフェーダーによる音量の交差だけです。</li>
+        <li>ビートグリッドとホットキューもローカル音源だけの機能です。</li>
       </ul>
       <button class="btn btn--primary" id="help-close">閉じる</button>
     </dialog>

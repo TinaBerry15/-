@@ -26,6 +26,7 @@ export class Source {
       pitch: false,
       waveform: false,
       cue: false,
+      grid: false,
       meter: false,
     };
 

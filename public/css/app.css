@@ -120,6 +120,7 @@ body {
     'wave wave'
     'times times'
     'transport transport'
+    'pads pads'
     'knobs fader'
     'sc sc';
   gap: 10px;
@@ -244,6 +245,66 @@ body {
   display: flex;
   gap: 6px;
   flex-wrap: wrap;
+}
+
+.pads {
+  grid-area: pads;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.pads__row {
+  display: flex;
+  gap: 6px;
+}
+.pad {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  width: 62px;
+  padding: 6px 4px;
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  color: var(--muted);
+  font-family: inherit;
+  cursor: pointer;
+}
+.pad b {
+  font-size: 13px;
+  line-height: 1;
+}
+.pad span {
+  font-size: 9px;
+  font-variant-numeric: tabular-nums;
+}
+.pad:hover:not(:disabled) {
+  border-color: #3d475e;
+}
+.pad.is-set {
+  color: #0b0d12;
+  background: var(--pad-color);
+  border-color: var(--pad-color);
+}
+.pad:disabled {
+  opacity: 0.32;
+  cursor: not-allowed;
+}
+.grid-tools {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.grid-tools__row {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+.btn--tiny {
+  padding: 3px 7px;
+  font-size: 11px;
 }
 
 .deck__knobs {

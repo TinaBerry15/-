@@ -58,6 +58,7 @@ export class SoundCloudSource extends Source {
       pitch: false,
       waveform: false,
       cue: false,
+      grid: false,
       meter: false,
     };
     this.mount = mount;
