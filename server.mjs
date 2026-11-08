@@ -115,6 +115,19 @@ const server = createServer(async (req, res) => {
   }
 });
 
+// ダブルクリックで二重起動されがちなので、分かる形で止める。
+server.on('error', (err) => {
+  if (err.code === 'EADDRINUSE') {
+    console.error(
+      `\n  ポート ${PORT} は既に使われています。` +
+        '\n  Solo DJ が既に起動しているなら、そのブラウザのタブをそのまま使ってください。' +
+        `\n  別のポートで動かすなら PORT=8788 node server.mjs\n`,
+    );
+    process.exit(1);
+  }
+  throw err;
+});
+
 server.listen(PORT, HOST, () => {
   const configured = Boolean(developerToken());
   console.log(`\n  Solo DJ  ->  http://${HOST}:${PORT}`);
