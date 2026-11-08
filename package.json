@@ -1,0 +1,14 @@
+{
+  "name": "solo-dj",
+  "version": "1.0.0",
+  "private": true,
+  "description": "自分専用の DJ アプリ。Apple Music / SoundCloud / ローカル音源を 2 デッキでミックスする。",
+  "type": "module",
+  "scripts": {
+    "start": "node server.mjs",
+    "token": "node tools/apple-token.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

@@ -1,0 +1,309 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Solo DJ</title>
+    <link rel="stylesheet" href="/css/app.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="brand">
+        <span class="brand__dot"></span>
+        <strong>Solo DJ</strong>
+        <span class="brand__sub">自分専用 2ch ミキサー</span>
+      </div>
+
+      <div class="topbar__master">
+        <label class="control control--inline">
+          <span class="control__label">MASTER</span>
+          <input type="range" id="master" min="0" max="100" value="85" />
+        </label>
+        <div class="meter meter--master" data-master-meter><span></span></div>
+      </div>
+
+      <div class="topbar__status">
+        <button id="audio-unlock" class="btn btn--ghost" hidden>🔊 音声を有効化</button>
+        <span id="status" class="status" role="status"></span>
+        <button id="help-toggle" class="btn btn--ghost" title="キーボードショートカット">?</button>
+      </div>
+    </header>
+
+    <main class="console">
+      <!-- ===================== DECK A ===================== -->
+      <section class="deck deck--a" data-deck="a" aria-label="デッキ A">
+        <div class="deck__head">
+          <span class="deck__id">A</span>
+          <div class="deck__meta">
+            <div class="deck__title" data-deck-title>— 空 —</div>
+            <div class="deck__artist" data-deck-artist></div>
+          </div>
+          <span class="badge" data-deck-badge></span>
+          <button class="btn btn--icon" data-action="eject" title="取り出す">⏏</button>
+        </div>
+
+        <p class="deck__notice" data-deck-notice hidden></p>
+
+        <canvas class="waveform" data-deck-waveform></canvas>
+
+        <div class="deck__times">
+          <span class="mono" data-deck-time>0:00</span>
+          <span class="deck__bpm">
+            <span class="mono" data-deck-bpm>--</span>
+            <small>BPM</small>
+            <input
+              class="bpm-input mono"
+              type="number"
+              min="40"
+              max="220"
+              step="0.1"
+              placeholder="手動"
+              data-action="bpm-manual"
+              title="BPM 手動入力 (解析が外れたとき)"
+            />
+          </span>
+          <span class="mono" data-deck-remain>-0:00</span>
+        </div>
+
+        <div class="transport">
+          <button class="btn btn--cue" data-action="cue">CUE</button>
+          <button class="btn btn--play" data-action="play">▶</button>
+          <button class="btn" data-action="set-cue" data-requires="cue" title="今の位置を CUE に設定">
+            SET
+          </button>
+          <button class="btn" data-action="loop-in" data-requires="cue">IN</button>
+          <button class="btn" data-action="loop-out" data-requires="cue">OUT</button>
+          <button class="btn" data-action="loop-clear" data-requires="cue">×</button>
+          <button class="btn btn--sync" data-action="sync" data-requires="pitch" title="相手デッキの BPM に合わせる">
+            SYNC
+          </button>
+        </div>
+
+        <div class="deck__knobs">
+          <label class="control">
+            <span class="control__label">TRIM</span>
+            <input type="range" data-action="trim" min="0" max="140" value="100" />
+          </label>
+          <label class="control">
+            <span class="control__label">HIGH</span>
+            <input type="range" data-action="eq-high" data-requires="eq" min="-26" max="8" value="0" />
+          </label>
+          <label class="control">
+            <span class="control__label">MID</span>
+            <input type="range" data-action="eq-mid" data-requires="eq" min="-26" max="8" value="0" />
+          </label>
+          <label class="control">
+            <span class="control__label">LOW</span>
+            <input type="range" data-action="eq-low" data-requires="eq" min="-26" max="8" value="0" />
+          </label>
+          <label class="control">
+            <span class="control__label">FILTER</span>
+            <input type="range" data-action="filter" data-requires="filter" min="-100" max="100" value="0" />
+          </label>
+          <label class="control">
+            <span class="control__label">PITCH <small data-pitch-value>0.0%</small></span>
+            <input type="range" data-action="pitch" data-requires="pitch" min="-80" max="80" value="0" />
+          </label>
+        </div>
+
+        <div class="deck__fader">
+          <div class="meter" data-deck-meter><span></span></div>
+          <div class="fader-wrap">
+            <input class="fader" type="range" data-action="fader" min="0" max="100" value="100" />
+          </div>
+        </div>
+
+        <div class="sc-mount" data-sc-mount></div>
+      </section>
+
+      <!-- ===================== CENTER ===================== -->
+      <section class="center" aria-label="クロスフェーダー">
+        <div class="center__label">CROSSFADER</div>
+        <input id="crossfader" type="range" min="0" max="100" value="50" />
+        <div class="center__ends"><span>A</span><span>B</span></div>
+        <div class="center__buttons">
+          <button class="btn btn--ghost" id="xfade-a">◀ A</button>
+          <button class="btn btn--ghost" id="xfade-center">中央</button>
+          <button class="btn btn--ghost" id="xfade-b">B ▶</button>
+        </div>
+        <label class="control control--stack">
+          <span class="control__label">AUTO FADE</span>
+          <select id="autofade-time">
+            <option value="2">2 秒</option>
+            <option value="4" selected>4 秒</option>
+            <option value="8">8 秒</option>
+            <option value="16">16 秒</option>
+          </select>
+          <button class="btn" id="autofade-run">反対側へフェード</button>
+        </label>
+      </section>
+
+      <!-- ===================== DECK B ===================== -->
+      <section class="deck deck--b" data-deck="b" aria-label="デッキ B">
+        <div class="deck__head">
+          <span class="deck__id">B</span>
+          <div class="deck__meta">
+            <div class="deck__title" data-deck-title>— 空 —</div>
+            <div class="deck__artist" data-deck-artist></div>
+          </div>
+          <span class="badge" data-deck-badge></span>
+          <button class="btn btn--icon" data-action="eject" title="取り出す">⏏</button>
+        </div>
+
+        <p class="deck__notice" data-deck-notice hidden></p>
+
+        <canvas class="waveform" data-deck-waveform></canvas>
+
+        <div class="deck__times">
+          <span class="mono" data-deck-time>0:00</span>
+          <span class="deck__bpm">
+            <span class="mono" data-deck-bpm>--</span>
+            <small>BPM</small>
+            <input
+              class="bpm-input mono"
+              type="number"
+              min="40"
+              max="220"
+              step="0.1"
+              placeholder="手動"
+              data-action="bpm-manual"
+            />
+          </span>
+          <span class="mono" data-deck-remain>-0:00</span>
+        </div>
+
+        <div class="transport">
+          <button class="btn btn--cue" data-action="cue">CUE</button>
+          <button class="btn btn--play" data-action="play">▶</button>
+          <button class="btn" data-action="set-cue" data-requires="cue">SET</button>
+          <button class="btn" data-action="loop-in" data-requires="cue">IN</button>
+          <button class="btn" data-action="loop-out" data-requires="cue">OUT</button>
+          <button class="btn" data-action="loop-clear" data-requires="cue">×</button>
+          <button class="btn btn--sync" data-action="sync" data-requires="pitch">SYNC</button>
+        </div>
+
+        <div class="deck__knobs">
+          <label class="control">
+            <span class="control__label">TRIM</span>
+            <input type="range" data-action="trim" min="0" max="140" value="100" />
+          </label>
+          <label class="control">
+            <span class="control__label">HIGH</span>
+            <input type="range" data-action="eq-high" data-requires="eq" min="-26" max="8" value="0" />
+          </label>
+          <label class="control">
+            <span class="control__label">MID</span>
+            <input type="range" data-action="eq-mid" data-requires="eq" min="-26" max="8" value="0" />
+          </label>
+          <label class="control">
+            <span class="control__label">LOW</span>
+            <input type="range" data-action="eq-low" data-requires="eq" min="-26" max="8" value="0" />
+          </label>
+          <label class="control">
+            <span class="control__label">FILTER</span>
+            <input type="range" data-action="filter" data-requires="filter" min="-100" max="100" value="0" />
+          </label>
+          <label class="control">
+            <span class="control__label">PITCH <small data-pitch-value>0.0%</small></span>
+            <input type="range" data-action="pitch" data-requires="pitch" min="-80" max="80" value="0" />
+          </label>
+        </div>
+
+        <div class="deck__fader">
+          <div class="meter" data-deck-meter><span></span></div>
+          <div class="fader-wrap">
+            <input class="fader" type="range" data-action="fader" min="0" max="100" value="100" />
+          </div>
+        </div>
+
+        <div class="sc-mount" data-sc-mount></div>
+      </section>
+    </main>
+
+    <!-- ===================== LIBRARY ===================== -->
+    <section class="library" aria-label="ライブラリ">
+      <nav class="tabs" role="tablist">
+        <button class="tab is-active" data-tab="apple" role="tab">Apple Music</button>
+        <button class="tab" data-tab="soundcloud" role="tab">SoundCloud</button>
+        <button class="tab" data-tab="local" role="tab">ローカル音源</button>
+        <button class="tab" data-tab="crate" role="tab">クレート</button>
+      </nav>
+
+      <!-- Apple Music -->
+      <div class="panel is-active" data-panel="apple">
+        <div class="panel__bar">
+          <button class="btn btn--primary" id="apple-signin">Apple Music にサインイン</button>
+          <input id="apple-search" type="search" placeholder="曲名 / アーティストで検索" disabled />
+          <span class="hint" id="apple-hint">未設定</span>
+        </div>
+        <ul class="results" id="apple-results"></ul>
+      </div>
+
+      <!-- SoundCloud -->
+      <div class="panel" data-panel="soundcloud">
+        <div class="panel__bar">
+          <input
+            id="sc-url"
+            type="url"
+            placeholder="https://soundcloud.com/artist/track の URL を貼る"
+            spellcheck="false"
+          />
+          <button class="btn" data-load-deck="a" data-load-kind="sc">→ A</button>
+          <button class="btn" data-load-deck="b" data-load-kind="sc">→ B</button>
+          <button class="btn btn--ghost" id="sc-save">クレートに追加</button>
+        </div>
+        <p class="hint">
+          SoundCloud は新規 API クライアント登録が停止中のため、公式 Widget 経由で再生します。
+          カタログ検索はできないので、曲は URL で指定し、よく使うものはクレートに保存してください。
+        </p>
+      </div>
+
+      <!-- Local -->
+      <div class="panel" data-panel="local">
+        <div class="panel__bar">
+          <input id="local-files" type="file" accept="audio/*" multiple />
+          <span class="hint">
+            ドラッグ＆ドロップでもデッキに直接載せられます。これだけが EQ / 波形 / BPM / ピッチの全機能に対応します。
+          </span>
+        </div>
+        <ul class="results" id="local-results"></ul>
+      </div>
+
+      <!-- Crate -->
+      <div class="panel" data-panel="crate">
+        <div class="panel__bar">
+          <span class="hint">お気に入り (このブラウザの localStorage に保存)</span>
+          <button class="btn btn--ghost" id="crate-clear">全消去</button>
+        </div>
+        <ul class="results" id="crate-results"></ul>
+      </div>
+    </section>
+
+    <div class="dropzone" id="dropzone" hidden>
+      <span>ここにドロップ → 近い方のデッキに読み込み</span>
+    </div>
+
+    <dialog id="help">
+      <h2>キーボードショートカット</h2>
+      <table class="keys">
+        <tr><td><kbd>Q</kbd> / <kbd>P</kbd></td><td>デッキ A / B 再生・一時停止</td></tr>
+        <tr><td><kbd>W</kbd> / <kbd>O</kbd></td><td>デッキ A / B CUE</td></tr>
+        <tr><td><kbd>E</kbd> / <kbd>I</kbd></td><td>今の位置を CUE に設定</td></tr>
+        <tr><td><kbd>←</kbd> / <kbd>→</kbd></td><td>クロスフェーダー</td></tr>
+        <tr><td><kbd>↑</kbd> / <kbd>↓</kbd></td><td>マスター音量</td></tr>
+        <tr><td><kbd>S</kbd> / <kbd>L</kbd></td><td>A を B に / B を A に BPM シンク</td></tr>
+        <tr><td><kbd>F</kbd></td><td>反対側へオートフェード</td></tr>
+        <tr><td><kbd>Space</kbd></td><td>両デッキ停止 (非常停止)</td></tr>
+      </table>
+      <h3>できないこと (DRM の制約)</h3>
+      <ul class="caveats">
+        <li>Apple Music / SoundCloud の音には EQ・フィルター・ピッチ・波形・レベルメーターが使えません。</li>
+        <li>Apple Music はプレイヤーが 1 つしか作れないため、A/B 両方に同時にロードできません。</li>
+        <li>これらの音源の「ミックス」はクロスフェーダーによる音量の交差だけです。</li>
+      </ul>
+      <button class="btn btn--primary" id="help-close">閉じる</button>
+    </dialog>
+
+    <script type="module" src="/js/app.js"></script>
+  </body>
+</html>
