@@ -3,6 +3,7 @@ import { Mixer } from './mixer.js';
 import { Deck } from './deck.js';
 import { searchAppleMusic, initAppleMusic } from './sources/apple.js';
 import { isSoundCloudUrl } from './sources/soundcloud.js';
+import * as lib from './library.js';
 
 const $ = (sel, root = document) => root.querySelector(sel);
 const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
@@ -551,30 +552,122 @@ $('#sc-save').addEventListener('click', () => {
 
 // ---------------------------------------------------------------- ローカル音源
 const localResults = $('#local-results');
-/** File はブラウザを閉じると失われるので、このセッション限りのリスト。 */
-const localFiles = [];
+const libraryFilter = $('#library-filter');
+const pickBtn = $('#library-pick');
+const reconnectBtn = $('#library-reconnect');
 
-$('#local-files').addEventListener('change', (event) => {
-  for (const file of event.target.files) localFiles.push(file);
+/** 一覧に出す最大行数。曲数が多いときは絞り込んでもらう。 */
+const MAX_ROWS = 300;
+
+/** @type {{name: string, tracks: import('./library.js').LibraryTrack[], truncated: boolean}} */
+let library = { name: '', tracks: [], truncated: false };
+
+function setLibrary(result) {
+  library = result;
   renderLocal();
-});
+  const extra = result.truncated ? `（多すぎるため ${result.tracks.length} 曲で打ち切り）` : '';
+  status(`${result.name}: ${result.tracks.length} 曲を読み込みました${extra}`, 'ok');
+}
+
+/** ドロップや「ファイルを選ぶ」で足された File を一覧に混ぜる。 */
+function addFiles(files) {
+  const added = lib.tracksFromFileList(files).tracks;
+  if (!added.length) return;
+  library = {
+    name: library.name || '手動で追加',
+    tracks: [...library.tracks, ...added],
+    truncated: library.truncated,
+  };
+  renderLocal();
+}
 
 function renderLocal() {
-  if (!localFiles.length) {
-    localResults.replaceChildren(emptyRow('ファイルを選ぶか、デッキにドロップしてください'));
+  if (!library.tracks.length) {
+    localResults.replaceChildren(
+      emptyRow('「音楽フォルダを選ぶ」でライブラリを読み込むか、曲をデッキにドロップしてください'),
+    );
     return;
   }
-  localResults.replaceChildren(
-    ...localFiles.map((file) =>
-      resultRow({
-        title: file.name,
-        sub: `${(file.size / 1024 / 1024).toFixed(1)} MB`,
-        onLoad: (deck) => loadLocalInto(deck, file),
-      }),
-    ),
+
+  const query = libraryFilter.value.trim().toLowerCase();
+  const matches = query
+    ? library.tracks.filter((track) => track.path.toLowerCase().includes(query))
+    : library.tracks;
+
+  if (!matches.length) {
+    localResults.replaceChildren(emptyRow('該当なし'));
+    return;
+  }
+
+  const shown = matches.slice(0, MAX_ROWS);
+  const rows = shown.map((track) =>
+    resultRow({
+      title: track.name.replace(/\.[^.]+$/, ''),
+      sub: track.path,
+      // File 本体はデッキに載せる瞬間に初めて読む。
+      onLoad: async (deck) => loadLocalInto(deck, await track.getFile()),
+    }),
   );
+  if (matches.length > shown.length) {
+    rows.push(emptyRow(`ほか ${matches.length - shown.length} 曲。絞り込んでください。`));
+  }
+  localResults.replaceChildren(...rows);
 }
+
+pickBtn.addEventListener('click', async () => {
+  if (!lib.supportsDirectoryPicker) {
+    // Chrome 以外はフォルダ選択の input で代用する（保存はできない）。
+    $('#local-folder').click();
+    return;
+  }
+  try {
+    status('フォルダを読み込んでいます…');
+    const result = await lib.pickDirectory((count) => status(`${count} 曲を読み込み中…`));
+    setLibrary(result);
+    reconnectBtn.hidden = true;
+  } catch (err) {
+    // ダイアログを閉じただけならエラーにしない。
+    if (err.name === 'AbortError') {
+      status('');
+      return;
+    }
+    status(err.message || String(err), 'error');
+  }
+});
+
+reconnectBtn.addEventListener('click', async () => {
+  try {
+    status('前回のライブラリを開いています…');
+    const result = await lib.reconnectSavedDirectory((count) => status(`${count} 曲を読み込み中…`));
+    if (!result) {
+      reconnectBtn.hidden = true;
+      status('保存されたライブラリがありません', 'error');
+      return;
+    }
+    setLibrary(result);
+    reconnectBtn.hidden = true;
+  } catch (err) {
+    status(err.message || String(err), 'error');
+  }
+});
+
+$('#local-folder').addEventListener('change', (event) => {
+  setLibrary(lib.tracksFromFileList(event.target.files));
+});
+$('#local-files').addEventListener('change', (event) => addFiles(event.target.files));
+libraryFilter.addEventListener('input', renderLocal);
+
 renderLocal();
+
+// 前回フォルダを選んでいれば、1 クリックで戻せるようにボタンを出す。
+// (権限の再許可が要るので、自動では開かない)
+(async () => {
+  if (!lib.supportsDirectoryPicker) return;
+  const saved = await lib.savedDirectory();
+  if (!saved) return;
+  reconnectBtn.hidden = false;
+  reconnectBtn.textContent = `前回のライブラリを開く (${saved.name})`;
+})();
 
 // ---------------------------------------------------------------- クレート
 const CRATE_KEY = 'solo-dj.crate.v1';
@@ -662,8 +755,7 @@ window.addEventListener('drop', async (event) => {
   const deck = event.clientX < window.innerWidth / 2 ? decks.a : decks.b;
   try {
     await loadLocalInto(deck, files[0]);
-    for (const file of files.slice(1)) localFiles.push(file);
-    renderLocal();
+    addFiles(files);
   } catch (err) {
     status(err.message, 'error');
   }

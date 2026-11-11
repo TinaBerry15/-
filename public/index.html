@@ -327,11 +327,17 @@
       <!-- Local -->
       <div class="panel" data-panel="local">
         <div class="panel__bar">
-          <input id="local-files" type="file" accept="audio/*" multiple />
-          <span class="hint">
-            ドラッグ＆ドロップでもデッキに直接載せられます。これだけが EQ / 波形 / BPM / ピッチの全機能に対応します。
-          </span>
+          <button class="btn btn--primary" id="library-pick">音楽フォルダを選ぶ</button>
+          <button class="btn" id="library-reconnect" hidden></button>
+          <label class="btn" for="local-files">ファイルを選ぶ</label>
+          <input id="local-files" type="file" accept="audio/*" multiple hidden />
+          <input id="local-folder" type="file" webkitdirectory hidden />
+          <input id="library-filter" type="search" placeholder="曲名・フォルダ名で絞り込み" />
         </div>
+        <p class="hint">
+          ドラッグ＆ドロップでもデッキに直接載せられます。これだけが EQ / 波形 / BPM / ピッチ /
+          ホットキューの全機能に対応します。
+        </p>
         <ul class="results" id="local-results"></ul>
       </div>
 
