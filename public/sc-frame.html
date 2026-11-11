@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <title>SoundCloud deck</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        background: transparent;
+        overflow: hidden;
+      }
+      iframe {
+        display: block;
+        width: 100%;
+        height: 60px;
+        border: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <!--
+      SoundCloud プレイヤー 1 台を隔離して載せるためのページ。
+
+      なぜこんな回り道をするのか:
+        SoundCloud のウィジェットは、同じページに 2 つ置くと互いを止め合う
+        (片方を再生すると、もう片方が一時停止する)。別タブなら同時に鳴るので、
+        止め合いはページ単位で起きている。そこで各デッキのウィジェットを
+        それぞれ別ページ (= このページ) に入れ子にして隔離し、
+        親ページとは postMessage でやりとりする。
+
+      親からのメッセージ: { solodj: true, type: 'load' | 'play' | 'pause' | 'seek' | 'volume', ... }
+      親へのメッセージ:   { solodj: true, type: 'frame-ready' | 'ready' | 'play' | 'pause'
+                                        | 'finish' | 'progress' | 'error', ... }
+    -->
+    <iframe id="widget" allow="autoplay" scrolling="no" frameborder="no"></iframe>
+
+    <script src="https://w.soundcloud.com/player/api.js"></script>
+    <script>
+      (() => {
+        const frame = document.getElementById('widget');
+        let widget = null;
+        let bound = false;
+
+        const send = (message) => parent.postMessage({ solodj: true, ...message }, location.origin);
+
+        if (!window.SC || !window.SC.Widget) {
+          send({
+            type: 'error',
+            message: 'SoundCloud Widget API を読み込めませんでした (ネットワークか拡張機能のブロック?)',
+          });
+          return;
+        }
+
+        const E = window.SC.Widget.Events;
+
+        function load(url) {
+          const params = new URLSearchParams({
+            url,
+            auto_play: 'false',
+            show_artwork: 'false',
+            visual: 'false',
+            hide_related: 'true',
+            show_comments: 'false',
+            show_user: 'true',
+            sharing: 'false',
+            download: 'false',
+            buying: 'false',
+          });
+          frame.src = `https://w.soundcloud.com/player/?${params.toString()}`;
+
+          widget = window.SC.Widget(frame);
+
+          widget.bind(E.READY, () => {
+            widget.getCurrentSound((sound) => {
+              send({
+                type: 'ready',
+                title: sound?.title ?? '(no title)',
+                artist: sound?.user?.username ?? 'SoundCloud',
+                artwork: sound?.artwork_url ?? sound?.user?.avatar_url ?? null,
+                duration: (sound?.duration ?? 0) / 1000,
+              });
+            });
+
+            // READY は曲を差し替えるたびに飛ぶので、購読は 1 回だけにする。
+            if (bound) return;
+            bound = true;
+            widget.bind(E.PLAY, () => send({ type: 'play' }));
+            widget.bind(E.PAUSE, () => send({ type: 'pause' }));
+            widget.bind(E.FINISH, () => send({ type: 'finish' }));
+            widget.bind(E.PLAY_PROGRESS, (data) =>
+              send({ type: 'progress', position: (data?.currentPosition ?? 0) / 1000 }),
+            );
+          });
+
+          widget.bind(E.ERROR, () =>
+            send({
+              type: 'error',
+              message: 'SoundCloud が再生を拒否しました (非公開/埋め込み禁止トラック?)',
+            }),
+          );
+        }
+
+        window.addEventListener('message', (event) => {
+          if (event.origin !== location.origin) return;
+          const data = event.data;
+          if (!data || data.solodj !== true) return;
+
+          switch (data.type) {
+            case 'load':
+              load(data.url);
+              break;
+            case 'play':
+              widget?.play();
+              break;
+            case 'pause':
+              widget?.pause();
+              break;
+            case 'seek':
+              widget?.seekTo(data.seconds * 1000);
+              break;
+            case 'volume':
+              // Widget API の音量は 0〜100。
+              widget?.setVolume(data.gain * 100);
+              break;
+          }
+        });
+
+        send({ type: 'frame-ready' });
+      })();
+    </script>
+  </body>
+</html>

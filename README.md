@@ -44,12 +44,25 @@ macOS なら **`start.command` をダブルクリック**するだけでもい�
 | ローカル × SoundCloud | ✅ | 実機で確認済み |
 | ローカル × Apple Music | ✅ | 別プレイヤーなので |
 | **Apple Music × SoundCloud** | ✅ | **この構成なら両サービスを跨いで繋げる** |
-| SoundCloud × SoundCloud | ❌ | SoundCloud のプレイヤーが同じページの別プレイヤーを止める。実機で確認済み |
+| SoundCloud × SoundCloud | ⚠ | 下記「SoundCloud の止め合い」を参照 |
 | Apple Music × Apple Music | ❌ | MusicKit がページに 1 インスタンスしか持てない |
 
-つまり**同じサービス同士は繋げない**。ストリーミングだけで回すなら、
+Apple Music 同士は繋げないので、ストリーミングだけで回すなら
 Apple Music と SoundCloud を**交互に**使うことになる。
-両デッキが SoundCloud になった場合は、画面に警告が出る。
+
+### SoundCloud の止め合い
+
+SoundCloud のウィジェットは、**同じページに 2 つ置くと互いを止め合う**
+(片方を再生するともう片方が一時停止する)。一方、別タブなら同時に鳴る。
+つまり止め合いはページ単位で起きている。
+
+そこでデッキごとに `public/sc-frame.html` を挟み、ウィジェットを
+**1 ページ 1 台に隔離**して、親とは postMessage でやりとりする方式にした。
+これで 2 台のウィジェットが別々のページに入り、止め合わなくなる想定。
+
+この隔離が実際に止め合いを解消するかは、soundcloud.com に到達できる環境でしか
+確認できない。配管 (フレームの生成・メッセージの往復・エラーの伝播・破棄) は
+自動テストで確認済み。
 
 - **Apple Music / SoundCloud の音声は DRM で保護されていて Web Audio API に取り込めない。**
   だから波形も解析できないし、EQ もスクラッチもかけられない。これは実装の手抜きではなく、
@@ -181,6 +194,7 @@ server.mjs              静的配信 + /api/apple-token（.p8 で ES256 署名�
 tools/apple-token.mjs   MusicKit デベロッパートークン生成（依存ゼロ）
 public/
   index.html
+  sc-frame.html           SoundCloud ウィジェット 1 台を隔離して載せるページ
   css/app.css
   js/
     app.js              全体の配線（ライブラリ・クレート・ショートカット・ドロップ）
@@ -191,7 +205,7 @@ public/
       base.js           共通インターフェース（caps で「できること」を宣言）
       local.js          ローカル音源。Web Audio のフル機能
       apple.js          MusicKit JS v3
-      soundcloud.js     SoundCloud Widget API
+      soundcloud.js     SoundCloud Widget API（sc-frame.html 経由で隔離）
 ```
 
 設計の要は `sources/base.js` の `caps`。音源ごとに「EQ が使えるか」「波形があるか」を
