@@ -230,6 +230,8 @@ $('#autofade-run').addEventListener('click', () => autoFade(Number($('#autofade-
 function meterLoop() {
   decks.a.renderMeter();
   decks.b.renderMeter();
+  decks.a.renderSilentBadge();
+  decks.b.renderSilentBadge();
   const m = $('[data-master-meter]');
   m.style.setProperty('--level', Math.min(1, mixer.readMasterLevel()).toFixed(3));
   // ローカル音源の再生位置はイベントが飛ばないのでここで更新する。

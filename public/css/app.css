@@ -186,6 +186,15 @@ body {
   color: #ff7700;
   border-color: #ff770055;
 }
+.badge--silent {
+  color: var(--warn);
+  border-color: #ffd16666;
+  background: #ffd16614;
+}
+/* クラス側の指定がブラウザ既定の [hidden]{display:none} に勝たないよう明示する。 */
+.badge--silent[hidden] {
+  display: none;
+}
 .badge[data-kind='local'] {
   color: var(--ok);
   border-color: #06d6a055;

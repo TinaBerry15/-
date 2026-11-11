@@ -46,7 +46,11 @@ export class Deck {
       notice: root.querySelector('[data-deck-notice]'),
       pads: [...root.querySelectorAll('[data-hotcue]')],
       gridInfo: root.querySelector('[data-grid-info]'),
+      silent: root.querySelector('[data-deck-silent]'),
     };
+
+    /** 無音バッジの文言。毎フレーム DOM を触らないよう、変わったときだけ書く。 */
+    this._silentLabel = null;
 
     this.ctx2d = this.el.canvas.getContext('2d');
     this._resizeCanvas();
@@ -308,6 +312,7 @@ export class Deck {
 
     this.renderPads();
     this.renderGridInfo();
+    this.renderSilentBadge();
     this.drawWaveform();
     this.renderProgress();
   }
@@ -339,6 +344,33 @@ export class Deck {
     this.el.time.textContent = fmtTime(pos);
     this.el.remain.textContent = `-${fmtTime(Math.max(0, dur - pos))}`;
     this.drawWaveform();
+  }
+
+  /**
+   * このデッキが今なぜ無音なのかを示す。
+   *
+   * クロスフェーダーが反対側に振り切っているだけで音が出ないのは正しい動作だが、
+   * 画面に何も出ないと「壊れている」ようにしか見えないので、理由を出す。
+   * @returns {string|null}
+   */
+  silentReason() {
+    if (!this.source) return null;
+    const ch = this.channel;
+    if (ch.muted) return '無音: MUTE';
+    if (ch.crossfade < 0.02) return `無音: クロスフェーダーが ${this.id === 'a' ? 'B' : 'A'} 側`;
+    if (ch.fader < 0.02) return '無音: フェーダーが 0';
+    if (ch.trim < 0.02) return '無音: TRIM が 0';
+    if (this.mixer.masterLevel < 0.02) return '無音: マスターが 0';
+    return null;
+  }
+
+  renderSilentBadge() {
+    if (!this.el.silent) return;
+    const label = this.silentReason();
+    if (label === this._silentLabel) return;
+    this._silentLabel = label;
+    this.el.silent.textContent = label ?? '';
+    this.el.silent.hidden = !label;
   }
 
   /** メーターはローカル音源のときだけ動く。 */
