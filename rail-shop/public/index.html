@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#06070a">
+<title>ARCHIVE RAIL</title>
+<link rel="stylesheet" href="/css/style.css">
+<script type="importmap">
+{ "imports": { "three": "/vendor/three/three.module.js", "three/addons/": "/vendor/three/" } }
+</script>
+</head>
+<body>
+
+<header class="bar">
+  <nav id="filters" class="filters" aria-label="カテゴリ"></nav>
+  <a class="brand" href="/" data-shop-name>ARCHIVE RAIL</a>
+  <a id="profile" class="profile" target="_blank" rel="noopener">MERCARI ↗</a>
+</header>
+
+<main>
+  <section class="hero">
+    <div id="stage" class="stage"></div>
+
+    <p class="caption"><span>ON THE RAIL</span><span id="tagline"></span></p>
+    <p class="sample-note">SAMPLE DATA — <a href="/admin">/admin</a> から自分の商品を追加</p>
+    <p class="empty-note">このカテゴリには商品がありません</p>
+
+    <button id="prev" class="arrow left" aria-label="前の服">‹</button>
+    <button id="next" class="arrow right" aria-label="次の服">›</button>
+
+    <div id="focus" class="focus">
+      <p id="focusMeta" class="focus-meta"></p>
+      <h2 id="focusTitle"></h2>
+      <p id="focusPrice" class="focus-price"></p>
+      <button id="view" class="view">VIEW ITEM</button>
+    </div>
+    <p id="counter" class="counter"></p>
+
+    <div id="photoNav" class="photo-nav" hidden>
+      <button id="photoPrev" aria-label="前の写真">‹</button>
+      <span id="photoCount"></span>
+      <button id="photoNext" aria-label="次の写真">›</button>
+    </div>
+
+    <aside id="panel" class="panel" aria-hidden="true">
+      <button id="close" class="close" aria-label="閉じる">×</button>
+      <p id="dIndex" class="eyebrow"></p>
+      <p id="dBrand" class="d-brand"></p>
+      <h2 id="dTitle"></h2>
+      <p id="dPrice" class="d-price"></p>
+      <dl id="dSpecs" class="specs"></dl>
+      <div id="dThumbs" class="thumbs"></div>
+      <p id="dDesc" class="desc"></p>
+      <a id="dBuy" class="buy" target="_blank" rel="noopener"></a>
+      <p class="hint">ドラッグで回転 / 写真をタップで切替</p>
+    </aside>
+
+    <div class="ticker" aria-hidden="true"><span id="ticker"></span></div>
+  </section>
+
+  <section class="all">
+    <header>
+      <h2>ALL ITEMS</h2>
+      <span id="gridCount"></span>
+    </header>
+    <div id="grid" class="grid"></div>
+  </section>
+</main>
+
+<footer class="foot">
+  <span data-shop-name>ARCHIVE RAIL</span>
+  <span>購入・発送はメルカリ上で行われます</span>
+</footer>
+
+<script type="module" src="/js/app.mjs"></script>
+</body>
+</html>

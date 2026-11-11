@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>管理 — Rail Shop</title>
+<link rel="stylesheet" href="/css/admin.css">
+</head>
+<body>
+<header class="top">
+  <h1>RAIL SHOP <span>/ 管理</span></h1>
+  <a href="/" target="_blank" rel="noopener">ストアを開く ↗</a>
+</header>
+
+<main>
+  <p id="notice" class="notice" hidden></p>
+
+  <section id="tokenBox" class="card" hidden>
+    <h2>合言葉</h2>
+    <p class="help">サーバの <code>.env</code> に設定した <code>ADMIN_TOKEN</code> を入れてください。このブラウザに保存されます。</p>
+    <div class="inline">
+      <input id="token" type="password" autocomplete="current-password" placeholder="ADMIN_TOKEN">
+      <button id="tokenSave" type="button">保存</button>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>商品を追加</h2>
+    <form id="itemForm">
+      <label class="drop" id="drop">
+        <input id="files" type="file" accept="image/*" multiple hidden>
+        <strong>写真を選ぶ</strong>
+        <span>またはここにドロップ。1 枚目がラックに掛かる写真になります (最大 10 枚)</span>
+      </label>
+
+      <label class="check">
+        <input id="cutout" type="checkbox">
+        <span>背景を透かす <small>白い壁・床など単色の背景で撮った写真向け。うまく抜けない写真は自動で元のまま使います</small></span>
+      </label>
+
+      <div id="previews" class="previews"></div>
+
+      <div class="fields">
+        <label class="wide">商品名 <input name="title" required maxlength="80" placeholder="例: Carhartt デトロイトジャケット ブラウン"></label>
+        <label>価格 (円) <input name="price" type="number" min="0" step="1" required inputmode="numeric" placeholder="12800"></label>
+        <label>ブランド <input name="brand" maxlength="40" placeholder="Carhartt"></label>
+        <label>サイズ <input name="size" maxlength="20" placeholder="L"></label>
+        <label>カテゴリ
+          <select name="category">
+            <option value="tops">トップス</option>
+            <option value="outer">アウター</option>
+            <option value="bottoms">ボトムス</option>
+            <option value="other">その他</option>
+          </select>
+        </label>
+        <label class="wide">状態
+          <select name="condition">
+            <option>新品、未使用</option>
+            <option>未使用に近い</option>
+            <option selected>目立った傷や汚れなし</option>
+            <option>やや傷や汚れあり</option>
+            <option>傷や汚れあり</option>
+            <option>全体的に状態が悪い</option>
+          </select>
+        </label>
+        <label class="wide">メルカリの商品ページ URL <input name="mercariUrl" type="url" placeholder="https://jp.mercari.com/item/m..."></label>
+        <label class="wide">説明 <textarea name="description" rows="5" maxlength="2000" placeholder="メルカリの説明文をそのまま貼って大丈夫です"></textarea></label>
+      </div>
+
+      <button id="submit" class="primary" type="submit">ラックに掛ける</button>
+      <p id="formStatus" class="status"></p>
+    </form>
+  </section>
+
+  <section class="card">
+    <h2>掛かっている商品 <span id="count" class="count"></span></h2>
+    <div id="list" class="list"></div>
+  </section>
+
+  <section class="card">
+    <h2>ショップの設定</h2>
+    <form id="shopForm" class="fields">
+      <label class="wide">ショップ名 <input name="name" maxlength="40"></label>
+      <label class="wide">ひとこと (上と帯に出ます) <input name="tagline" maxlength="80"></label>
+      <label class="wide">メルカリのプロフィール URL <input name="profileUrl" type="url" placeholder="https://jp.mercari.com/user/profile/..."></label>
+      <button class="wide" type="submit">設定を保存</button>
+      <p id="shopStatus" class="status wide"></p>
+    </form>
+  </section>
+</main>
+
+<script type="module" src="/js/admin.mjs"></script>
+</body>
+</html>

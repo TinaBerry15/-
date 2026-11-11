@@ -1,0 +1,9 @@
+{
+  "name": "rail-shop",
+  "version": "0.1.0",
+  "private": true,
+  "description": "出品中の服の写真を 3D のハンガーラックに掛けて見せるストア。",
+  "type": "module",
+  "scripts": { "start": "node server.mjs" },
+  "engines": { "node": ">=20" }
+}
