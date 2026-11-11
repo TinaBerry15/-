@@ -1,0 +1,39 @@
+{
+  "shop": { "name": "ARCHIVE RAIL", "tagline": "ONE OF ONE / PRE-OWNED SELECTION", "profileUrl": "" },
+  "items": [
+    {
+      "id": "jacket",
+      "title": "Supreme × Nike パフィージャケット ブラック",
+      "price": 0,
+      "size": "",
+      "condition": "",
+      "brand": "Supreme / Nike",
+      "description": "",
+      "category": "outer",
+      "mercariUrl": "",
+      "sold": false,
+      "photos": [
+        { "url": "/uploads/jacket-0.jpg", "cutout": false },
+        { "url": "/uploads/jacket-1.jpg", "cutout": false }
+      ]
+    },
+    {
+      "id": "sneaker",
+      "title": "via SANGACIO レザースニーカー ホワイト",
+      "price": 0,
+      "size": "26.5cm (US 8.5)",
+      "condition": "",
+      "brand": "via SANGACIO",
+      "description": "",
+      "category": "shoes",
+      "mercariUrl": "",
+      "sold": false,
+      "photos": [
+        { "url": "/uploads/sneaker-0.jpg", "cutout": false },
+        { "url": "/uploads/sneaker-1.jpg", "cutout": false },
+        { "url": "/uploads/sneaker-2.jpg", "cutout": false },
+        { "url": "/uploads/sneaker-3.jpg", "cutout": false }
+      ]
+    }
+  ]
+}

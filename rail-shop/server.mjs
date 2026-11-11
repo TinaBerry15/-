@@ -9,7 +9,7 @@
 //      無ければ「このマシン自身からのアクセス」だけを通す。
 
 import { createServer } from 'node:http';
-import { readFile, writeFile, stat, mkdir, unlink, rename } from 'node:fs/promises';
+import { readFile, writeFile, stat, mkdir, unlink, rename, cp } from 'node:fs/promises';
 import { existsSync, readFileSync } from 'node:fs';
 import { extname, join, normalize, resolve } from 'node:path';
 import { randomBytes, timingSafeEqual } from 'node:crypto';
@@ -18,6 +18,7 @@ const ROOT = resolve(import.meta.dirname, 'public');
 const DATA = resolve(import.meta.dirname, 'data');
 const UPLOADS = join(DATA, 'uploads');
 const DB = join(DATA, 'items.json');
+const SEED = resolve(import.meta.dirname, 'seed');
 
 const envFile = resolve(import.meta.dirname, '.env');
 if (existsSync(envFile)) {
@@ -52,7 +53,7 @@ const MIME = {
 const IMAGE_EXT = { 'image/jpeg': '.jpg', 'image/png': '.png', 'image/webp': '.webp' };
 const MAX_PHOTOS = 10;
 const MAX_PHOTO_BYTES = 8 * 1024 * 1024;
-const CATEGORIES = ['tops', 'outer', 'bottoms', 'other'];
+const CATEGORIES = ['tops', 'outer', 'bottoms', 'shoes', 'other'];
 
 const DEFAULT_SHOP = { name: 'ARCHIVE RAIL', tagline: 'ONE OF ONE / PRE-OWNED SELECTION', profileUrl: '' };
 
@@ -287,6 +288,14 @@ server.on('error', (err) => {
   }
   throw err;
 });
+
+// 初回だけ、同梱の初期在庫 (seed/) を data/ に写す。
+// 2 回目以降は data/ が正で、seed/ を書き換えても反映されない (管理画面での編集を上書きしないため)。
+if (!existsSync(DB) && existsSync(join(SEED, 'items.json'))) {
+  await mkdir(DATA, { recursive: true });
+  await cp(SEED, DATA, { recursive: true });
+  console.log('  初期在庫を seed/ から読み込みました。');
+}
 
 server.listen(PORT, HOST, () => {
   console.log(`\n  Rail Shop  ->  http://${HOST}:${PORT}`);

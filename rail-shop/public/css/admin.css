@@ -63,3 +63,5 @@ button.primary { width: 100%; margin-top: 16px; padding: 14px; background: var(-
 .row .ops button { padding: 6px 10px; font-size: 12px; }
 .row .ops .del:hover { border-color: var(--err); color: var(--err); }
 @media (max-width: 520px) { .row { grid-template-columns: 52px 1fr; } .row .ops { grid-column: 1 / -1; } .row .ops button { flex: 1; } }
+.editor { margin: 0 0 8px; padding: 14px; border: 1px solid var(--line); border-radius: 10px; background: #0f1115; }
+.editor[hidden] { display: none; }

@@ -148,7 +148,7 @@ async function loadList() {
     t.textContent = it.title;
     const p = document.createElement('div');
     p.className = 'p';
-    p.textContent = `¥${Number(it.price).toLocaleString('ja-JP')}${it.sold ? ' ・売り切れ' : ''}${it.mercariUrl ? '' : ' ・購入リンクなし'}`;
+    p.textContent = `${Number(it.price) > 0 ? `¥${Number(it.price).toLocaleString('ja-JP')}` : '価格未入力'}${it.sold ? ' ・売り切れ' : ''}${it.mercariUrl ? '' : ' ・購入リンクなし'}`;
     info.append(t, p);
 
     const ops = document.createElement('div');
@@ -169,9 +169,50 @@ async function loadList() {
       try { await call('DELETE', `/api/items/${it.id}`); await loadList(); }
       catch (err) { alert(err.message); }
     });
-    ops.append(sold, del);
+    const edit = document.createElement('button');
+    edit.type = 'button';
+    edit.textContent = '編集';
+    ops.append(edit, sold, del);
     row.append(img, info, ops);
     host.append(row);
+
+    // 編集欄は行のすぐ下に開く。写真はそのままで、文字の項目だけ直せる。
+    const form = document.createElement('form');
+    form.className = 'fields editor';
+    form.hidden = true;
+    const field = (label, name, value, { wide = false, type = 'text', area = false } = {}) => {
+      const l = document.createElement('label');
+      if (wide) l.className = 'wide';
+      l.append(label);
+      const input = document.createElement(area ? 'textarea' : 'input');
+      if (!area) input.type = type;
+      else input.rows = 4;
+      input.name = name;
+      input.value = value ?? '';
+      l.append(input);
+      form.append(l);
+    };
+    field('商品名', 'title', it.title, { wide: true });
+    field('価格 (円)', 'price', it.price || '', { type: 'number' });
+    field('サイズ', 'size', it.size);
+    field('ブランド', 'brand', it.brand);
+    field('状態', 'condition', it.condition);
+    field('メルカリの商品ページ URL', 'mercariUrl', it.mercariUrl, { wide: true, type: 'url' });
+    field('説明', 'description', it.description, { wide: true, area: true });
+    const save = document.createElement('button');
+    save.type = 'submit';
+    save.className = 'wide';
+    save.textContent = '変更を保存';
+    form.append(save);
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const body = Object.fromEntries(new FormData(form).entries());
+      body.price = Number(body.price) || 0;
+      try { await call('PATCH', `/api/items/${it.id}`, body); await loadList(); }
+      catch (err) { alert(err.message); }
+    });
+    edit.addEventListener('click', () => { form.hidden = !form.hidden; });
+    host.append(form);
   }
 
   const f = $('shopForm');

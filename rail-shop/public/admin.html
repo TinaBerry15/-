@@ -43,7 +43,7 @@
 
       <div class="fields">
         <label class="wide">商品名 <input name="title" required maxlength="80" placeholder="例: Carhartt デトロイトジャケット ブラウン"></label>
-        <label>価格 (円) <input name="price" type="number" min="0" step="1" required inputmode="numeric" placeholder="12800"></label>
+        <label>価格 (円) <input name="price" type="number" min="0" step="1" inputmode="numeric" placeholder="空欄なら「価格はメルカリで」"></label>
         <label>ブランド <input name="brand" maxlength="40" placeholder="Carhartt"></label>
         <label>サイズ <input name="size" maxlength="20" placeholder="L"></label>
         <label>カテゴリ
@@ -51,6 +51,7 @@
             <option value="tops">トップス</option>
             <option value="outer">アウター</option>
             <option value="bottoms">ボトムス</option>
+            <option value="shoes">シューズ</option>
             <option value="other">その他</option>
           </select>
         </label>

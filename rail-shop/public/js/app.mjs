@@ -4,10 +4,11 @@ import { Rail } from './rail.mjs';
 import { sampleItems } from './samples.mjs';
 
 const $ = (id) => document.getElementById(id);
-const yen = (n) => `¥${Number(n || 0).toLocaleString('ja-JP')}`;
+// 価格が未入力 (0) の商品は、金額の代わりに案内を出す。¥0 と出すと無料に見えてしまう。
+const yen = (n) => (Number(n) > 0 ? `¥${Number(n).toLocaleString('ja-JP')}` : '価格はメルカリで');
 const pad = (n) => String(n).padStart(2, '0');
 
-const CATEGORY_LABEL = { all: 'ALL', tops: 'TOPS', outer: 'OUTER', bottoms: 'BOTTOMS', other: 'OTHER' };
+const CATEGORY_LABEL = { all: 'ALL', tops: 'TOPS', outer: 'OUTER', bottoms: 'BOTTOMS', shoes: 'SHOES', other: 'OTHER' };
 
 let allItems = [];
 let items = [];      // いまラックに掛かっているもの (絞り込み後)
@@ -130,7 +131,7 @@ function renderFilters() {
   const host = $('filters');
   host.replaceChildren();
   const present = new Set(allItems.map((it) => it.category));
-  for (const cat of ['all', 'tops', 'outer', 'bottoms', 'other']) {
+  for (const cat of ['all', 'tops', 'outer', 'bottoms', 'shoes', 'other']) {
     if (cat !== 'all' && !present.has(cat)) continue;
     const b = document.createElement('button');
     b.dataset.cat = cat;
