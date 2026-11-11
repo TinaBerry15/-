@@ -1,0 +1,13 @@
+{
+  "name": "garment-viz",
+  "version": "0.1.0",
+  "private": true,
+  "description": "感覚的な言葉から服のシルエットを即座に 3D で可視化する。縫製は度外視。",
+  "type": "module",
+  "scripts": {
+    "start": "node server.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
