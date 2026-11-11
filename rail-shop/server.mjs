@@ -62,9 +62,13 @@ const DEFAULT_SHOP = { name: 'ARCHIVE RAIL', tagline: 'ONE OF ONE / PRE-OWNED SE
 async function loadDb() {
   try {
     const db = JSON.parse(await readFile(DB, 'utf8'));
-    return { shop: { ...DEFAULT_SHOP, ...(db.shop || {}) }, items: Array.isArray(db.items) ? db.items : [] };
+    return {
+      shop: { ...DEFAULT_SHOP, ...(db.shop || {}) },
+      items: Array.isArray(db.items) ? db.items : [],
+      seeded: Array.isArray(db.seeded) ? db.seeded : [],
+    };
   } catch {
-    return { shop: { ...DEFAULT_SHOP }, items: [] };
+    return { shop: { ...DEFAULT_SHOP }, items: [], seeded: [] };
   }
 }
 
@@ -189,7 +193,8 @@ async function api(req, res, url) {
   }
 
   if (path === '/api/items' && req.method === 'GET') {
-    return json(res, 200, await loadDb());
+    const { shop, items } = await loadDb();
+    return json(res, 200, { shop, items });
   }
 
   // ここから下は書き込み。
@@ -289,13 +294,37 @@ server.on('error', (err) => {
   throw err;
 });
 
-// 初回だけ、同梱の初期在庫 (seed/) を data/ に写す。
-// 2 回目以降は data/ が正で、seed/ を書き換えても反映されない (管理画面での編集を上書きしないため)。
-if (!existsSync(DB) && existsSync(join(SEED, 'items.json'))) {
-  await mkdir(DATA, { recursive: true });
-  await cp(SEED, DATA, { recursive: true });
-  console.log('  初期在庫を seed/ から読み込みました。');
+// 同梱の初期在庫 (seed/) のうち、まだ取り込んでいない商品だけを data/ に足す。
+// 取り込み済みの id は data 側に覚えておくので、
+//   - 管理画面で直した価格や説明を、起動のたびに上書きしない
+//   - 管理画面で消した商品が、起動のたびに復活しない
+//   - 後から seed/ に足した商品は、次の起動で届く
+async function importSeed() {
+  let seed;
+  try {
+    seed = JSON.parse(await readFile(join(SEED, 'items.json'), 'utf8'));
+  } catch {
+    return;
+  }
+  const first = !existsSync(DB);
+  const db = await loadDb();
+  if (first && seed.shop) db.shop = { ...DEFAULT_SHOP, ...seed.shop };
+  const fresh = (seed.items || []).filter((it) => !db.seeded.includes(it.id));
+  if (!fresh.length) return;
+
+  await mkdir(UPLOADS, { recursive: true });
+  for (const it of fresh) {
+    for (const p of it.photos || []) {
+      const name = String(p.url).replace(/^\/uploads\//, '');
+      await cp(join(SEED, 'uploads', name), join(UPLOADS, name));
+    }
+    db.seeded.push(it.id);
+  }
+  db.items = [...fresh, ...db.items];
+  await saveDb(db);
+  console.log(`  初期在庫から ${fresh.length} 点を取り込みました: ${fresh.map((it) => it.title).join(' / ')}`);
 }
+await importSeed();
 
 server.listen(PORT, HOST, () => {
   console.log(`\n  Rail Shop  ->  http://${HOST}:${PORT}`);

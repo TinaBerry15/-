@@ -1,6 +1,40 @@
 {
-  "shop": { "name": "ARCHIVE RAIL", "tagline": "ONE OF ONE / PRE-OWNED SELECTION", "profileUrl": "" },
+  "shop": {
+    "name": "ARCHIVE RAIL",
+    "tagline": "ONE OF ONE / PRE-OWNED SELECTION",
+    "profileUrl": ""
+  },
   "items": [
+    {
+      "id": "racing",
+      "title": "CHASE AUTHENTICS UPS レーシングジャケット ブラウン",
+      "price": 0,
+      "size": "M",
+      "condition": "",
+      "brand": "Chase Authentics",
+      "description": "表地: コットン100% / 裏地: ナイロン100% / 香港製 (タグ表記)",
+      "category": "outer",
+      "mercariUrl": "",
+      "sold": false,
+      "photos": [
+        {
+          "url": "/uploads/racing-0.webp",
+          "cutout": true
+        },
+        {
+          "url": "/uploads/racing-1.jpg",
+          "cutout": false
+        },
+        {
+          "url": "/uploads/racing-2.jpg",
+          "cutout": false
+        },
+        {
+          "url": "/uploads/racing-3.jpg",
+          "cutout": false
+        }
+      ]
+    },
     {
       "id": "jacket",
       "title": "Supreme × Nike パフィージャケット ブラック",
@@ -13,8 +47,14 @@
       "mercariUrl": "",
       "sold": false,
       "photos": [
-        { "url": "/uploads/jacket-0.jpg", "cutout": false },
-        { "url": "/uploads/jacket-1.jpg", "cutout": false }
+        {
+          "url": "/uploads/jacket-0.jpg",
+          "cutout": false
+        },
+        {
+          "url": "/uploads/jacket-1.jpg",
+          "cutout": false
+        }
       ]
     },
     {
@@ -29,10 +69,22 @@
       "mercariUrl": "",
       "sold": false,
       "photos": [
-        { "url": "/uploads/sneaker-0.jpg", "cutout": false },
-        { "url": "/uploads/sneaker-1.jpg", "cutout": false },
-        { "url": "/uploads/sneaker-2.jpg", "cutout": false },
-        { "url": "/uploads/sneaker-3.jpg", "cutout": false }
+        {
+          "url": "/uploads/sneaker-0.jpg",
+          "cutout": false
+        },
+        {
+          "url": "/uploads/sneaker-1.jpg",
+          "cutout": false
+        },
+        {
+          "url": "/uploads/sneaker-2.jpg",
+          "cutout": false
+        },
+        {
+          "url": "/uploads/sneaker-3.jpg",
+          "cutout": false
+        }
       ]
     }
   ]
