@@ -266,8 +266,7 @@ function refreshConflictNotices() {
   const b = decks.b.source?.kind;
   const bothSoundCloud = a === 'soundcloud' && b === 'soundcloud';
   const notice = bothSoundCloud
-    ? 'SoundCloud 同士。各プレイヤーは別ページに隔離してあるので同時に鳴るはずだが、'
-      + '片方を再生してもう片方が止まるようなら、片方をローカル音源か Apple Music にしてください'
+    ? '⚠ SoundCloud 同士は同時に鳴りません (片方を再生すると、もう片方が止まります)'
     : '';
   for (const deck of Object.values(decks)) {
     if (deck.conflictNotice === notice) continue;
@@ -296,7 +295,10 @@ async function loadScInto(deck, url) {
   await deck.loadSoundCloudUrl(url);
   refreshConflictNotices();
   if (other(deck.id).source?.kind === 'soundcloud') {
-    status('SoundCloud 同士です。両方が同時に鳴るか確かめてください。', 'info');
+    status(
+      'SoundCloud は 2 つ同時に鳴らせません。片方はローカル音源か Apple Music にしてください。',
+      'error',
+    );
   }
 }
 
