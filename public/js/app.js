@@ -89,6 +89,7 @@ for (const [id, deck] of Object.entries(decks)) {
           break;
         case 'eject':
           await deck.eject();
+          refreshConflictNotices();
           break;
         case 'grid-nudge':
           deck.nudgeGrid(Number(btn.dataset.delta));
@@ -251,6 +252,29 @@ for (const tab of $$('.tab')) {
 }
 
 // ---------------------------------------------------------------- ロード系
+/**
+ * 両デッキの組み合わせを見て、同時に鳴らせない状態なら警告を出す。
+ *
+ * 検証済みの組み合わせ:
+ *   ローカル × ローカル          … 同時に鳴る
+ *   ローカル × SoundCloud        … 同時に鳴る
+ *   SoundCloud × SoundCloud      … 鳴らない (SoundCloud のプレイヤーが互いを止める)
+ *   Apple Music × Apple Music    … 載せられない (MusicKit が 1 インスタンスのみ)
+ */
+function refreshConflictNotices() {
+  const a = decks.a.source?.kind;
+  const b = decks.b.source?.kind;
+  const bothSoundCloud = a === 'soundcloud' && b === 'soundcloud';
+  const notice = bothSoundCloud
+    ? '⚠ SoundCloud 同士は同時に鳴りません (片方を再生すると、もう片方が止まります)'
+    : '';
+  for (const deck of Object.values(decks)) {
+    if (deck.conflictNotice === notice) continue;
+    deck.conflictNotice = notice;
+    deck.render();
+  }
+}
+
 /** Apple Music は 1 インスタンスしか持てないので、片方に載せたら相手を降ろす。 */
 async function loadAppleInto(deck, track) {
   const otherDeck = other(deck.id);
@@ -263,11 +287,19 @@ async function loadAppleInto(deck, track) {
   }
   await mixer.resume();
   await deck.loadAppleTrack(track);
+  refreshConflictNotices();
 }
 
 async function loadScInto(deck, url) {
   await mixer.resume();
   await deck.loadSoundCloudUrl(url);
+  refreshConflictNotices();
+  if (other(deck.id).source?.kind === 'soundcloud') {
+    status(
+      'SoundCloud は 2 つ同時に鳴らせません。片方はローカル音源か Apple Music にしてください。',
+      'error',
+    );
+  }
 }
 
 // --- 曲ごとの状態 (ホットキュー / ビートグリッド) ---------------------
@@ -323,6 +355,7 @@ async function loadLocalInto(deck, file) {
   await mixer.resume();
   status(`${file.name} を解析中…`);
   await deck.loadLocalFile(file);
+  refreshConflictNotices();
   const restored = restoreTrackState(deck);
   const bpm = deck.source?.bpm;
   status(

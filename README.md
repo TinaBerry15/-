@@ -34,6 +34,23 @@ macOS なら **`start.command` をダブルクリック**するだけでもい�
 
 理由:
 
+### 同時に鳴らせる組み合わせ
+
+2 デッキを重ねられるかどうかは、音源の組み合わせで決まる。
+
+| 組み合わせ | 同時再生 | 備考 |
+|---|---|---|
+| ローカル × ローカル | ✅ | 自動テストで確認済み |
+| ローカル × SoundCloud | ✅ | 実機で確認済み |
+| ローカル × Apple Music | ✅ | 別プレイヤーなので |
+| **Apple Music × SoundCloud** | ✅ | **この構成なら両サービスを跨いで繋げる** |
+| SoundCloud × SoundCloud | ❌ | SoundCloud のプレイヤーが同じページの別プレイヤーを止める。実機で確認済み |
+| Apple Music × Apple Music | ❌ | MusicKit がページに 1 インスタンスしか持てない |
+
+つまり**同じサービス同士は繋げない**。ストリーミングだけで回すなら、
+Apple Music と SoundCloud を**交互に**使うことになる。
+両デッキが SoundCloud になった場合は、画面に警告が出る。
+
 - **Apple Music / SoundCloud の音声は DRM で保護されていて Web Audio API に取り込めない。**
   だから波形も解析できないし、EQ もスクラッチもかけられない。これは実装の手抜きではなく、
   MusicKit / SoundCloud の仕様上どうにもならない。iOS ネイティブの MusicKit でも同じ。

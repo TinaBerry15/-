@@ -52,6 +52,9 @@ export class Deck {
     /** 無音バッジの文言。毎フレーム DOM を触らないよう、変わったときだけ書く。 */
     this._silentLabel = null;
 
+    /** 相手デッキとの組み合わせによる警告。アプリ側が設定する。 */
+    this.conflictNotice = '';
+
     this.ctx2d = this.el.canvas.getContext('2d');
     this._resizeCanvas();
     new ResizeObserver(() => this._resizeCanvas()).observe(this.el.canvas);
@@ -67,7 +70,6 @@ export class Deck {
 
   async loadLocalFile(file) {
     await this._swapSource(new LocalSource(this.mixer.ctx, this.channel.inputNode));
-    this._notice('');
     await this.source.load(file);
     this.bpmOverride = 0;
     this.render();
@@ -76,7 +78,6 @@ export class Deck {
   /** @param {{id: string, title: string, artist: string, artwork?: string|null, duration?: number}} track */
   async loadAppleTrack(track) {
     await this._swapSource(new AppleSource());
-    this._notice('Apple Music は再生・シーク・音量のみ (EQ / 波形 / ピッチは不可)');
     await this.source.load(track);
     this.render();
   }
@@ -84,14 +85,12 @@ export class Deck {
   /** @param {string} url */
   async loadSoundCloudUrl(url) {
     await this._swapSource(new SoundCloudSource(this.el.scMount));
-    this._notice('SoundCloud は再生・シーク・音量のみ (EQ / 波形 / ピッチは不可)');
     await this.source.load(url);
     this.render();
   }
 
   async eject() {
     await this._swapSource(null);
-    this._notice('');
     this.render();
   }
 
@@ -310,11 +309,24 @@ export class Deck {
       el.closest('.control')?.classList.toggle('control--disabled', !ok);
     }
 
+    this.renderNotice();
     this.renderPads();
     this.renderGridInfo();
     this.renderSilentBadge();
     this.drawWaveform();
     this.renderProgress();
+  }
+
+  /** 音源の種類による制約と、相手デッキとの組み合わせによる警告をまとめて出す。 */
+  renderNotice() {
+    const kind = this.source?.kind;
+    const base =
+      kind === 'apple'
+        ? 'Apple Music は再生・シーク・音量のみ (EQ / 波形 / ピッチは不可)'
+        : kind === 'soundcloud'
+          ? 'SoundCloud は再生・シーク・音量のみ (EQ / 波形 / ピッチは不可)'
+          : '';
+    this._notice([base, this.conflictNotice].filter(Boolean).join(' ／ '));
   }
 
   renderPads() {
